@@ -20,15 +20,14 @@
 function Test-Image {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory,
-            ValueFromPipeline,
-            ValueFromPipelineByPropertyName)]
-        [Alias("PSPath")]
-        [ValidateScript( { Test-Path -Path $_ -PathType Leaf })]
-        [System.IO.FileInfo] $Path,
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateScript( { $_ | Test-Path -PathType Leaf })]
+        [System.IO.FileInfo]
+        $FileInfo,
 
         [Parameter()]
-        [switch] $PassThru
+        [switch]
+        $PassThru
     )
 
     begin {
@@ -44,7 +43,7 @@ function Test-Image {
     }
 
     process {
-        $Bytes = Get-Content -Path $Path -Encoding Byte -ReadCount 1 -TotalCount 8
+        $Bytes = $FileInfo | Get-Content -Encoding Byte -ReadCount 1 -TotalCount 8
         foreach ($Key in $SupportedFileHeaders.Keys) {
             $FileHeader = $Bytes | Select-Object -First $SupportedFileHeaders[$Key].Length | ForEach-Object { $_.ToString("X2") }
             if (-not $FileHeader -or $FileHeader.Length -eq 0) {
@@ -52,16 +51,16 @@ function Test-Image {
             }
             $Diff = Compare-Object -ReferenceObject $SupportedFileHeaders[$Key] -DifferenceObject $FileHeader
             if (($Diff | Measure-Object).Count -eq 0) {
-                Write-Verbose ('{0} is a {1} file.' -f $Path, $Key.ToLower())
+                Write-Verbose ('{0} is a {1} file.' -f $FileInfo, $Key.ToLower())
                 if ($PassThru) {
-                    return ($Path | Add-Member -NotePropertyName ImageType -NotePropertyValue $Key.ToLower() -PassThru)
+                    return ($FileInfo | Add-Member -NotePropertyName ImageType -NotePropertyValue $Key.ToLower() -PassThru)
                 }
                 else {
                     return $true
                 }
             }
         }
-        Write-Verbose ('{0} does not match any of the {1} format.' -f $Path, ($SupportedFileHeaders.Keys -join ', ').ToLower())
+        Write-Verbose ('{0} does not match any of the {1} format.' -f $FileInfo, ($SupportedFileHeaders.Keys -join ', ').ToLower())
         if (-not $PassThru) {
             return $false
         }

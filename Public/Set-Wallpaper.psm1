@@ -37,21 +37,23 @@ function Set-Wallpaper {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
-        [ValidateScript( { Test-Image -Path $_ })]
+        [ValidateScript( { $_ | Test-Image })]
         [System.IO.FileInfo]
-        $Path,
+        $FileInfo,
 
-        [Parameter(Mandatory)]
+        [Parameter()]
         [ValidateScript( { $_ -in @($WALLPAPER.Keys) })]
         [string]
         $Fit
     )
 
-    $DesktopRegKey = 'HKCU:\Control Panel\Desktop'
-    Set-ItemProperty -Path $DesktopRegKey -Name TileWallpaper -Value $WALLPAPER[$Fit].TileWallpaper
-    Set-ItemProperty -Path $DesktopRegKey -Name WallpaperStyle -Value $WALLPAPER[$Fit].WallpaperStyle
-    
-    [Desktop]::SetWallpaper((Get-Item $Path).FullName)
+    if ($Fit) {
+        $DesktopRegKey = 'HKCU:\Control Panel\Desktop'
+        Set-ItemProperty -Path $DesktopRegKey -Name TileWallpaper -Value $WALLPAPER[$Fit].TileWallpaper
+        Set-ItemProperty -Path $DesktopRegKey -Name WallpaperStyle -Value $WALLPAPER[$Fit].WallpaperStyle
+    }
+
+    [Desktop]::SetWallpaper($FileInfo.FullName)
 }
 
 Export-ModuleMember -Function Set-Wallpaper
