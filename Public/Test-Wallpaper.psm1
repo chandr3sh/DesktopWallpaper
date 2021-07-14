@@ -1,15 +1,14 @@
 <#
 .SYNOPSIS
-    Test if a file is image or not.
+    Test if an image file is in format supported for Windows background.
 .DESCRIPTION
-    Test whether a given file is a image or not by checking the file headers.
-    Supported image types are bmp, gif, tiff, png, jpg.
+    Test file headers for supported image types namely, bmp, gif, tiff, png, jpg.
 .EXAMPLE
     PS C:\> Test-Image -Path 'C:\Path\To\Image.jpg'
 .EXAMPLE
     PS C:\> Get-ChildItem | Test-Image -Path 'C:\Path\To\Image.jpg' -PassThru
 .INPUTS
-    Pipe any object that has 'Path' property
+    String or object that can be resolved as file path.
 .OUTPUTS
     None, System.Boolean, or System.Object
     When PassThru parameter is used, it returns the input object if test is positive, and None if test is negative.
@@ -17,13 +16,14 @@
 .NOTES
     Reference: https://devblogs.microsoft.com/scripting/psimaging-part-1-test-image
 #>
-function Test-Image {
+function Test-Wallpaper {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
         [ValidateScript( { $_ | Test-Path -PathType Leaf })]
+        [Alias("Path")]
         [System.IO.FileInfo]
-        $FileInfo,
+        $File,
 
         [Parameter()]
         [switch]
@@ -43,28 +43,29 @@ function Test-Image {
     }
 
     process {
-        $Bytes = $FileInfo | Get-Content -Encoding Byte -ReadCount 1 -TotalCount 8
-        foreach ($Key in $SupportedFileHeaders.Keys) {
-            $FileHeader = $Bytes | Select-Object -First $SupportedFileHeaders[$Key].Length | ForEach-Object { $_.ToString("X2") }
+        $File | Add-Member -NotePropertyName Path -NotePropertyValue $File.FullName # Get-Content looks for 'Path' property
+        $Bytes = $File | Get-Content -Encoding Byte -ReadCount 1 -TotalCount 8
+        foreach ($Type in $SupportedFileHeaders.Keys) {
+            $FileHeader = $Bytes | Select-Object -First $SupportedFileHeaders[$Type].Length | ForEach-Object { $_.ToString("X2") }
             if (-not $FileHeader -or $FileHeader.Length -eq 0) {
                 continue 
             }
-            $Diff = Compare-Object -ReferenceObject $SupportedFileHeaders[$Key] -DifferenceObject $FileHeader
+            $Diff = Compare-Object -ReferenceObject $SupportedFileHeaders[$Type] -DifferenceObject $FileHeader
             if (($Diff | Measure-Object).Count -eq 0) {
-                Write-Verbose ('{0} is a {1} file.' -f $FileInfo, $Key.ToLower())
+                Write-Verbose ('{0} is a {1} file.' -f $File, $Type.ToLower())
                 if ($PassThru) {
-                    return ($FileInfo | Add-Member -NotePropertyName ImageType -NotePropertyValue $Key.ToLower() -PassThru)
+                    return ($File | Add-Member -NotePropertyName ImageType -NotePropertyValue $Type.ToLower() -PassThru)
                 }
                 else {
                     return $true
                 }
             }
         }
-        Write-Verbose ('{0} does not match any of the {1} format.' -f $FileInfo, ($SupportedFileHeaders.Keys -join ', ').ToLower())
+        Write-Verbose ('{0} does not match any of the {1} format.' -f $File, ($SupportedFileHeaders.Keys -join ', ').ToLower())
         if (-not $PassThru) {
             return $false
         }
     }
 }
 
-Export-ModuleMember -Function Test-Image
+Export-ModuleMember -Function Test-Wallpaper

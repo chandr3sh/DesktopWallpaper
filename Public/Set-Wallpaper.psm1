@@ -37,9 +37,9 @@ function Set-Wallpaper {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
-        [ValidateScript( { $_ | Test-Image })]
+        [ValidateScript( { $_ | Test-Wallpaper })]
         [System.IO.FileInfo]
-        $FileInfo,
+        $Path,
 
         [Parameter()]
         [ValidateScript( { $_ -in @($WALLPAPER.Keys) })]
@@ -53,7 +53,7 @@ function Set-Wallpaper {
         Set-ItemProperty -Path $DesktopRegKey -Name WallpaperStyle -Value $WALLPAPER[$Fit].WallpaperStyle
     }
 
-    [Desktop]::SetWallpaper($FileInfo.FullName)
+    [Desktop]::SetWallpaper($Path.FullName)
 }
 
 Export-ModuleMember -Function Set-Wallpaper
